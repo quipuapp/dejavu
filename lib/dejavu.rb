@@ -1,7 +1,21 @@
 require "dejavu/version"
 
 module Dejavu
+  module CommonMethods
+    private
+
+    def object_name(obj)
+      (is_instance?(obj) ? obj.class.model_name : obj).to_s.underscore
+    end
+
+    def is_instance?(obj)
+      ActiveRecord::Base === obj
+    end
+  end
+
   module ViewHelpers
+    include CommonMethods
+
     def has_dejavu?(obj)
       !!flash[:"saved_#{object_name(obj)}_for_redisplay"]
     end
@@ -11,7 +25,7 @@ module Dejavu
 
       if has_dejavu?(obj)
         foo = if is_instance?(obj)
-                if Rails::VERSION::MINOR >= 1
+                if Rails::VERSION::MINOR >= 1 or defined? ProtectedAttributes
                   obj.assign_attributes(flash[:"saved_#{model_name}_for_redisplay"], :without_protection => true)
                 else
                   obj.attributes = flash[:"saved_#{model_name}_for_redisplay"]
@@ -34,16 +48,11 @@ module Dejavu
       end
     end
 
-    def is_instance?(obj)
-      ActiveRecord::Base === obj
-    end
-
-    def object_name(obj)
-      (is_instance?(obj) ? obj.class.model_name : obj).to_s.underscore
-    end
   end
 
   module ControllerMethods
+    include CommonMethods
+
     def save_for_dejavu(obj, opts = {})
       attrs = if opts[:only] && opts[:only].is_a?(Array)
         obj.attributes.slice(*opts[:only].map(&:to_s))
@@ -85,5 +94,5 @@ module Dejavu
   end
 end
 
-ActionController::Base.send(:include, Dejavu::ControllerMethods)
 ActionView::Base.send(:include, Dejavu::ViewHelpers)
+ActionController::Base.send(:include, Dejavu::ControllerMethods)
