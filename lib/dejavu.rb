@@ -83,7 +83,7 @@ module Dejavu
     def save_nested_for_dejavu(obj, key, attrs)
       value = obj.send(key)
 
-      attrs["#{key}_attributes"] = if value.is_a? Array
+      attrs["#{key}_attributes"] = if value.is_a?(Array) or value.is_a?(ActiveRecord::Associations::CollectionProxy)
                                      value.map(&:attributes)
                                    else
                                      value.attributes
